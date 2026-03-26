@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BOCCIA BRAIN</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+:root {
+  --red: #ff3b3b; --blue: #3b9eff; --gold: #ffc947;
+  --green: #39d98a; --dark: #080b10; --panel: #0f1318;
+  --card: #141920; --border: #1e2530; --text: #dde4ef; --muted: #5a6478;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--dark); color: var(--text); font-family: 'Noto Sans JP', sans-serif; min-height: 100vh; }
+
+.hdr {
+  background: var(--panel); border-bottom: 1px solid var(--border);
+  padding: 0 16px; height: 50px;
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 3px; color: var(--gold); }
+.logo span { font-size: 11px; color: var(--muted); letter-spacing: 1px; font-family: 'Noto Sans JP'; font-weight: 400; }
+.end-pill {
+  font-family: 'Bebas Neue'; font-size: 13px; letter-spacing: 2px;
+  background: var(--card); border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 20px; color: var(--gold); cursor: pointer;
+}
+
+/* SCORE */
+.score-wrap {
+  display: grid; grid-template-columns: 1fr auto 1fr;
+  padding: 12px 16px; gap: 8px;
+  background: var(--panel); border-bottom: 1px solid var(--border);
+}
+.sc-side { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.sc-label { font-size: 10px; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
+.sc-label.r { color: var(--red); } .sc-label.b { color: var(--blue); }
+.sc-num { font-family: 'Bebas Neue'; font-size: 52px; line-height: 1; }
+.sc-num.r { color: var(--red); } .sc-num.b { color: var(--blue); }
+.sc-btns { display: flex; gap: 5px; }
+.sc-btn {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); font-size: 17px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s;
+}
+.sc-btn:active { transform: scale(0.85); }
+.sc-btn.p { border-color: var(--gold); color: var(--gold); }
+.sc-vs { display: flex; align-items: center; color: var(--muted); font-family: 'Bebas Neue'; font-size: 14px; }
+
+/* STEP QUESTIONS */
+.questions { padding: 14px 16px; }
+.q-step {
+  margin-bottom: 14px;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+.q-label {
+  font-size: 10px; letter-spacing: 2px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.q-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--border); color: var(--muted);
+  font-family: 'Bebas Neue'; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+}
+.q-num.done { background: var(--gold); color: var(--dark); }
+
+.q-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.q-btn {
+  flex: 1; min-width: 120px; padding: 13px 10px;
+  border-radius: 12px; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--muted);
+  font-size: 14px; font-weight: 700; cursor: pointer;
+  transition: all 0.15s; text-align: center;
+}
+.q-btn:active { transform: scale(0.96); }
+.q-btn.sel-r { border-color: var(--red); background: rgba(255,59,59,0.1); color: var(--red); }
+.q-btn.sel-b { border-color: var(--blue); background: rgba(59,158,255,0.1); color: var(--blue); }
+.q-btn.sel { border-color: var(--gold); background: rgba(255,201,71,0.1); color: var(--gold); }
+.q-btn.disabled { opacity: 0.3; pointer-events: none; }
+
+/* BALL COUNT */
+.ball-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.ball-box {
+  background: var(--card); border-radius: 12px; padding: 10px 12px;
+  border: 1px solid var(--border); display: flex; flex-direction: column; gap: 6px;
+}
+.ball-box.r { border-color: rgba(255,59,59,0.3); }
+.ball-box.b { border-color: rgba(59,158,255,0.3); }
+.ball-box-lbl { font-size: 10px; letter-spacing: 1px; font-weight: 700; text-transform: uppercase; }
+.ball-box-lbl.r { color: var(--red); } .ball-box-lbl.b { color: var(--blue); }
+.ball-stepper { display: flex; align-items: center; justify-content: space-between; }
+.st-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--dark);
+  color: var(--text); font-size: 18px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.1s;
+}
+.st-btn:active { transform: scale(0.85); }
+.st-val { font-family: 'Bebas Neue'; font-size: 32px; }
+.st-val.r { color: var(--red); } .st-val.b { color: var(--blue); }
+
+/* RESULT */
+.result-wrap { padding: 0 16px 16px; display: none; }
+.result-wrap.show { display: block; animation: fadeIn 0.3s ease; }
+
+.result-main {
+  background: var(--card); border: 2px solid var(--gold);
+  border-radius: 14px; overflow: hidden; margin-bottom: 10px;
+}
+.result-top {
+  background: rgba(255,201,71,0.1);
+  padding: 10px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,201,71,0.2);
+}
+.result-badge {
+  font-family: 'Bebas Neue'; font-size: 11px; letter-spacing: 2px;
+  background: var(--gold); color: var(--dark); padding: 2px 10px; border-radius: 20px;
+}
+.result-type { font-family: 'Bebas Neue'; font-size: 14px; letter-spacing: 2px; color: var(--gold); }
+.result-body { padding: 14px; }
+.result-name { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 1px; margin-bottom: 8px; }
+.result-action {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  line-height: 1.7; margin-bottom: 10px;
+  padding: 10px 12px; background: rgba(255,255,255,0.04);
+  border-radius: 8px; border-left: 3px solid var(--gold);
+}
+.result-why { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+.alts-title { font-size: 10px; letter-spacing: 2px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+.alt-cards { display: flex; flex-direction: column; gap: 7px; }
+.alt-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 14px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.alt-n { font-family: 'Bebas Neue'; font-size: 22px; color: var(--border); flex-shrink: 0; line-height: 1.1; }
+.alt-name { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+.alt-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+.reset-btn {
+  width: 100%; margin-top: 12px; padding: 13px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--muted); font-family: 'Bebas Neue'; font-size: 14px; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.reset-btn:active { color: var(--text); border-color: var(--text); }
+
+.next-btn {
+  width: calc(100% - 32px); margin: 0 16px 16px;
+  padding: 14px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); font-family: 'Bebas Neue'; font-size: 15px; letter-spacing: 3px;
+  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.next-btn:active { background: rgba(255,255,255,0.05); }
+.pb { height: 40px; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">BOCCIA BRAIN <span>オフライン戦術</span></div>
+  <div class="end-pill" id="endPill" onclick="nextEnd()">END 1/4 ▶</div>
+</div>
+
+<div class="score-wrap">
+  <div class="sc-side">
+    <div class="sc-label r">🔴 自チーム</div>
+    <div class="sc-num r" id="myScore">0</div>
+    <div class="sc-btns">
+      <button class="sc-btn p" onclick="sc('my',1)">+</button>
+      <button class="sc-btn" onclick="sc('my',-1)">−</button>
+    </div>
+  </div>
+  <div class="sc-vs">VS</div>
+  <div class="sc-side">
+    <div class="sc-label b">🔵 相手</div>
+    <div class="sc-num b" id="oppScore">0</div>
+    <div class="sc-btns">
+      <button class="sc-btn p" onclick="sc('opp',1)">+</button>
+      <button class="sc-btn" onclick="sc('opp',-1)">−</button>
+    </div>
+  </div>
+</div>
+
+<div class="questions">
+
+  <!-- 残球 -->
+  <div class="q-step">
+    <div class="q-label"><div class="q-num done">1</div>残り球数</div>
+    <div class="ball-row">
+      <div class="ball-box r">
+        <div class="ball-box-lbl r">自チーム</div>
+        <div class="ball-stepper">
+          <button class="st-btn" onclick="ball('my',-1)">−</button>
+          <div class="st-val r" id="myBall">6</div>
+          <button class="st-btn" onclick="ball('my',1)">+</button>
+        </div>
+      </div>
+      <div class="ball-box b">
+        <div class="ball-box-lbl b">相手</div>
+        <div class="ball-stepper">
+          <button class="st-btn" onclick="ball('opp',-1)">−</button>
+          <div class="st-val b" id="oppBall">6</div>
+          <button class="st-btn" onclick="ball('opp',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q1: 最近接 -->
+  <div class="q-step" id="q1">
+    <div class="q-label"><div class="q-num" id="n1">2</div>今ジャックに一番近いのは？</div>
+    <div class="q-btns">
+      <button class="q-btn" onclick="answer('nearest','my')">🔴 自チーム</button>
+      <button class="q-btn" onclick="answer('nearest','opp')">🔵 相手</button>
+    </div>
+  </div>
+
+  <!-- Q2: ジャック位置 -->
+  <div class="q-step" id="q2" style="display:none">
+    <div class="q-label"><div class="q-num" id="n2">3</div>ジャックはどこにある？</div>
+    <div class="q-btns">
+      <button class="q-btn" onclick="answer('jack','corner')">📍 隅・端</button>
+      <button class="q-btn" onclick="answer('jack','center')">📍 中央</button>
+    </div>
+  </div>
+
+  <!-- Q3: 先行/後攻 -->
+  <div class="q-step" id="q3" style="display:none">
+    <div class="q-label"><div class="q-num" id="n3">4</div>ジャックを投げたのは？</div>
+    <div class="q-btns">
+      <button class="q-btn" onclick="answer('order','first')">🔴 自チーム（先行）</button>
+      <button class="q-btn" onclick="answer('order','second')">🔵 相手（後攻）</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- RESULT -->
+<div class="result-wrap" id="resultWrap">
+  <div class="result-main">
+    <div class="result-top">
+      <span class="result-badge">推奨戦術</span>
+      <span class="result-type" id="rType"></span>
+    </div>
+    <div class="result-body">
+      <div class="result-name" id="rName"></div>
+      <div class="result-action" id="rAction"></div>
+      <div class="result-why" id="rWhy"></div>
+    </div>
+  </div>
+  <div class="alts-title">代替案</div>
+  <div class="alt-cards" id="rAlts"></div>
+  <button class="reset-btn" onclick="reset()">↩ もう一度入力する</button>
+</div>
+
+<button class="next-btn" onclick="nextEnd()">▶ 次のエンドへ</button>
+<div class="pb"></div>
+
+<script>
+const S = { end:1, myScore:0, oppScore:0, myBall:6, oppBall:6, nearest:null, jack:null, order:null };
+
+// ===== 戦術データベース =====
+// キー: nearest_jack_order
+// nearest: my/opp
+// jack: corner/center
+// order: first/second
+const TACTICS = {
+
+  // 自チーム最近接 × 隅 × 先行
+  'my_corner_first': {
+    type: 'BLOCK', name: 'コーナー封鎖',
+    action: '精度の高い選手が自球をジャックの前面に置き、相手の投球角度を完全に塞ぐ。ブロック率75%超を目指す。相手は残り球を消耗し続ける。',
+    why: '先行＋コーナーで最強の優位。Ball Count Advantageを維持しながら残球で圧倒するのが最善。',
+    alts: [
+      { name: '追加アプローチ', desc: 'ブロックより先にもう1球最近接を重ねて多点狙い' },
+      { name: '待ち（パス）', desc: '相手が球を使い切るまで温存。最後に安全投球' }
+    ]
+  },
+
+  // 自チーム最近接 × 隅 × 後攻
+  'my_corner_second': {
+    type: 'BLOCK', name: '隅守り固め',
+    action: 'ジャックの左右どちらかをブロック球で塞ぐ。相手は1方向からしか攻撃できない状態を作る。硬い球でなく柔らかい球を使って確実に止める。',
+    why: '後攻でも隅にジャックがある限り防御陣地を作れる。ブロック球で相手の選択肢を狭める。',
+    alts: [
+      { name: 'KOFF先制', desc: '相手が投げる前に積極的KOFFで局面を動かすFearlessスタイル' },
+      { name: 'ジャック移動', desc: 'LOBでジャックを更に奥に押し込んで守備を強化' }
+    ]
+  },
+
+  // 自チーム最近接 × 中央 × 先行
+  'my_center_first': {
+    type: 'BLOCK', name: '360度ブロック',
+    action: 'ジャックの周囲4方向に球を配置する意識で投球。まず相手の投球ボックス方向を最優先で塞ぐ。残球が多い今のうちにブロックを重ねる。',
+    why: '中央は全方向から狙われる。先行の残球優位を使い複数のブロックで封鎖するのが最善。',
+    alts: [
+      { name: '多点狙い', desc: '2〜3球を密集させ一気に多点取りを狙う' },
+      { name: 'ジャック隅移動', desc: 'KONでジャックを隅に押し込んでから守備固め' }
+    ]
+  },
+
+  // 自チーム最近接 × 中央 × 後攻
+  'my_center_second': {
+    type: 'BLOCK', name: '中央ブロック',
+    action: '最近接球の手前にブロック球を置いて盾にする。相手がKOFFを狙っても弾いた先に自球が来る状況を作る。',
+    why: '中央は後攻不利だが、ブロックで相手のKOFFを無力化できる。',
+    alts: [
+      { name: 'ジャック移動', desc: 'LOBでジャックを隅に移動させて守りやすくする' },
+      { name: 'Fearless KOFF', desc: '攻めに転じ相手の最近接候補球を先に除去' }
+    ]
+  },
+
+  // 相手最近接 × 隅 × 先行
+  'opp_corner_first': {
+    type: 'KOFF', name: '隅KOFFで奪還',
+    action: '硬い球を使い、相手の最近接球を横から弾き飛ばす。コーナーなので弾いた球は壁で止まり外に出ない。KOFF後すぐに自球でアプローチして最近接を確保。',
+    why: '先行でも相手最近接なら即KOFFが必要。Ball Count Advantageを取り戻すために残球を使う価値あり。',
+    alts: [
+      { name: 'アプローチ先行', desc: 'KOFFより先に最近接を狙う。相手球を気にせず寄せる' },
+      { name: 'LOBジャック移動', desc: 'ジャックを相手球の届かない位置に動かす' }
+    ]
+  },
+
+  // 相手最近接 × 隅 × 後攻
+  'opp_corner_second': {
+    type: 'KOFF', name: '隅KOFF必須',
+    action: '後攻＋相手最近接は最悪の状況。硬い球で相手の最近接球を直接弾く。壁際なのでINOFF（リコシェ）も有効。弾いた後に精度型選手がすぐアプローチ。',
+    why: '後攻で相手最近接はBall Count Advantageが相手に渡る。即座にKOFFで局面を変えるしかない。',
+    alts: [
+      { name: 'INOFF狙い', desc: '別の球に当てて跳ね返りで相手球を除去するリコシェ' },
+      { name: 'ジャック移動緊急', desc: 'LOBでジャックを完全に動かして局面リセット' }
+    ]
+  },
+
+  // 相手最近接 × 中央 × 先行
+  'opp_center_first': {
+    type: 'KOFF', name: '中央KOFF',
+    action: '先行の残球優位を活かしてKOFFで相手最近接を除去。中央は360度から攻撃可能なので最も投げやすい角度を選ぶ。KOFF後アプローチで最近接奪還。',
+    why: '先行＋残球優位があるうちに最近接を取り戻す。中央はKOFFしやすい絶好の状況。',
+    alts: [
+      { name: 'アプローチ直接', desc: 'KOFFせず自球でジャックに最近接を狙う' },
+      { name: 'ブロック先置き', desc: '相手が投げる前にブロックを置いて選択肢を制限' }
+    ]
+  },
+
+  // 相手最近接 × 中央 × 後攻
+  'opp_center_second': {
+    type: 'KOFF', name: 'Fearless KOFF',
+    action: '後攻の最悪状況。Fearlessスタイルで積極的にKOFF。ためらわず硬い球で相手最近接球を弾く。失敗してもアプローチで挽回する意識で連続攻撃。',
+    why: '後攻＋相手最近接＋中央は相手有利の最悪パターン。英国Fearlessスタイルで積極攻撃しかない。',
+    alts: [
+      { name: 'ジャック移動', desc: 'LOBでジャックを隅に移動させて局面を有利にリセット' },
+      { name: 'INOFF', desc: '既存の球を利用したリコシェで相手球を間接除去' }
+    ]
+  },
+};
+
+// 残球補正アドバイス
+function getBallAdvice(myB, oppB) {
+  if (myB > oppB + 1) return '✅ 残球優位：最後に確実な1球で追加点を狙える';
+  if (oppB > myB + 1) return '⚠️ 相手残球優位：相手が後出し可能。早めに最近接を固める';
+  if (myB === 0 && oppB > 0) return '🔴 残球なし：相手が連続投球。守れない状況';
+  return '⚖️ 残球同数：1球ずつの精度勝負';
+}
+
+// エンド補正
+function getEndAdvice(end, myScore, oppScore) {
+  const diff = myScore - oppScore;
+  if (end === 4) {
+    if (diff > 0) return `🏆 最終エンドリード中。守りを固めてブロック優先`;
+    if (diff < 0) return `🔥 最終エンド逆転必要。KOFFで積極的に点差を縮める`;
+    return `⚡ 最終エンド同点。1点でも多く取ったチームが勝利`;
+  }
+  return null;
+}
+
+function answer(key, val) {
+  S[key] = val;
+
+  // ボタン色変え
+  const qMap = { nearest:'q1', jack:'q2', order:'q3' };
+  const q = document.getElementById(qMap[key]);
+  q.querySelectorAll('.q-btn').forEach(b => b.classList.remove('sel','sel-r','sel-b','disabled'));
+  const clicked = event.target;
+  if (val === 'my') clicked.classList.add('sel-r');
+  else if (val === 'opp') clicked.classList.add('sel-b');
+  else clicked.classList.add('sel');
+  q.querySelectorAll('.q-btn').forEach(b => { if(b !== clicked) b.classList.add('disabled'); });
+  document.getElementById('n' + qMap[key].slice(1)).classList.add('done');
+
+  // 次のステップを表示
+  if (key === 'nearest') {
+    document.getElementById('q2').style.display = 'block';
+  } else if (key === 'jack') {
+    document.getElementById('q3').style.display = 'block';
+  } else if (key === 'order') {
+    showResult();
+  }
+}
+
+function showResult() {
+  const key = `${S.nearest}_${S.jack}_${S.order}`;
+  const t = TACTICS[key];
+  if (!t) return;
+
+  document.getElementById('rType').textContent = t.type;
+  document.getElementById('rName').textContent = t.name;
+  document.getElementById('rAction').textContent = t.action;
+
+  // 残球・エンド補正コメント
+  const ballAdv = getBallAdvice(S.myBall, S.oppBall);
+  const endAdv = getEndAdvice(S.end, S.myScore, S.oppScore);
+  let why = t.why;
+  why += `\n\n${ballAdv}`;
+  if (endAdv) why += `\n${endAdv}`;
+  document.getElementById('rWhy').style.whiteSpace = 'pre-line';
+  document.getElementById('rWhy').textContent = why;
+
+  document.getElementById('rAlts').innerHTML = t.alts.map((a,i) => `
+    <div class="alt-card">
+      <div class="alt-n">0${i+1}</div>
+      <div>
+        <div class="alt-name">${a.name}</div>
+        <div class="alt-desc">${a.desc}</div>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('resultWrap').classList.add('show');
+  document.getElementById('resultWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function reset() {
+  S.nearest = S.jack = S.order = null;
+  ['q2','q3'].forEach(id => document.getElementById(id).style.display = 'none');
+  document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('sel','sel-r','sel-b','disabled'));
+  document.querySelectorAll('.q-num').forEach((n,i) => { if(i>0) n.classList.remove('done'); });
+  document.getElementById('resultWrap').classList.remove('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function sc(t, d) {
+  if (t==='my') { S.myScore=Math.max(0,S.myScore+d); document.getElementById('myScore').textContent=S.myScore; }
+  else { S.oppScore=Math.max(0,S.oppScore+d); document.getElementById('oppScore').textContent=S.oppScore; }
+}
+
+function ball(t, d) {
+  if (t==='my') { S.myBall=Math.max(0,Math.min(6,S.myBall+d)); document.getElementById('myBall').textContent=S.myBall; }
+  else { S.oppBall=Math.max(0,Math.min(6,S.oppBall+d)); document.getElementById('oppBall').textContent=S.oppBall; }
+}
+
+function nextEnd() {
+  S.end = Math.min(S.end+1, 4);
+  document.getElementById('endPill').textContent = `END ${S.end}/4 ▶`;
+  S.myBall = 6; S.oppBall = 6;
+  document.getElementById('myBall').textContent = 6;
+  document.getElementById('oppBall').textContent = 6;
+  reset();
+}
+</script>
+</body>
+</html>

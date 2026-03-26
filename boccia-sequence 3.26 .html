@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BOCCIA SEQUENCE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+:root{
+  --red:#ff3b3b;--blue:#3b9eff;--gold:#ffc947;--green:#39d98a;--orange:#ff8c00;
+  --dark:#06090e;--panel:#0d1117;--card:#121820;--border:#1c2430;
+  --text:#d8e2f0;--muted:#4e5e72;--court:#071410;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{background:var(--dark);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* HEADER */
+.hdr{
+  background:var(--panel);border-bottom:1px solid var(--border);
+  height:52px;padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+}
+.logo{font-family:'Bebas Neue';font-size:24px;letter-spacing:4px;color:var(--gold);}
+.logo em{font-style:normal;color:var(--muted);font-size:12px;letter-spacing:1px;font-family:'Noto Sans JP';font-weight:400;}
+.phase-pill{
+  font-family:'Bebas Neue';font-size:12px;letter-spacing:2px;
+  padding:4px 14px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card);color:var(--gold);transition:all 0.3s;
+}
+
+/* PHASE BAR */
+.phase-bar{
+  display:flex;background:var(--panel);border-bottom:1px solid var(--border);
+  position:sticky;top:52px;z-index:190;
+}
+.ph{
+  flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:700;
+  letter-spacing:1px;color:var(--muted);border-bottom:2px solid transparent;
+  transition:all 0.2s;cursor:pointer;
+}
+.ph.on{color:var(--gold);border-bottom-color:var(--gold);}
+.ph.done{color:var(--green);border-bottom-color:var(--green);}
+
+/* COURT */
+.court-outer{padding:12px 14px 0;}
+.court-label{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.court-box{
+  position:relative;width:100%;padding-bottom:52%;
+  background:var(--court);border-radius:8px;overflow:hidden;
+  border:1.5px solid #152a1e;
+}
+.court-box.active{border-color:var(--gold);cursor:crosshair;}
+.court-box.result-mode{border-color:var(--green);}
+
+/* court markings */
+.court-box::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(to bottom,transparent 79%,rgba(255,255,255,0.06) 79%,rgba(255,255,255,0.06) 81%,transparent 81%),
+    linear-gradient(to right,
+      rgba(255,255,255,0.03) 16.6%,transparent 16.6%,transparent 33.2%,
+      rgba(255,255,255,0.03) 33.2%,transparent 33.2%,transparent 49.8%,
+      rgba(255,255,255,0.03) 49.8%,transparent 49.8%,transparent 66.4%,
+      rgba(255,255,255,0.03) 66.4%,transparent 66.4%,transparent 83%,
+      rgba(255,255,255,0.03) 83%);
+}
+.court-label-overlay{
+  position:absolute;bottom:3%;left:50%;transform:translateX(-50%);
+  font-size:8px;color:rgba(255,255,255,0.1);letter-spacing:2px;pointer-events:none;
+}
+.vline{position:absolute;bottom:20%;left:0;right:0;height:1px;background:rgba(255,255,255,0.07);pointer-events:none;}
+.court-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;}
+
+/* BALL ELEMENTS */
+.bmarker{
+  position:absolute;transform:translate(-50%,-50%);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:900;pointer-events:none;z-index:20;
+  border:2px solid rgba(255,255,255,0.25);
+  box-shadow:0 2px 8px rgba(0,0,0,0.6);
+  transition:transform 0.1s;
+}
+.bmarker.clickable{pointer-events:auto;cursor:pointer;}
+.bmarker.clickable:active{transform:translate(-50%,-50%) scale(0.85);}
+
+/* INSTRUCTIONS */
+.instr{
+  margin:10px 14px 0;padding:10px 14px;
+  background:var(--card);border-radius:10px;
+  border-left:2px solid var(--gold);
+  font-size:13px;font-weight:700;color:var(--text);line-height:1.6;
+}
+.instr.green{border-left-color:var(--green);color:var(--green);}
+.instr em{color:var(--gold);font-style:normal;}
+
+/* PALETTE */
+.palette{
+  display:flex;gap:6px;padding:10px 14px;flex-wrap:wrap;align-items:center;
+}
+.pball{
+  width:36px;height:36px;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:900;border:2px solid transparent;
+  transition:all 0.15s;box-shadow:0 2px 6px rgba(0,0,0,0.4);
+}
+.pball:active{transform:scale(0.88);}
+.pball.sel{border-color:var(--gold);transform:scale(1.15);box-shadow:0 0 0 3px rgba(255,201,71,0.35);}
+.pball.used{opacity:0.2;pointer-events:none;}
+.pball.jack{background:#e8e8e8;color:#333;}
+.pball.red{background:var(--red);color:#fff;}
+.pball.blue{background:var(--blue);color:#fff;}
+.psep{width:1px;height:32px;background:var(--border);}
+.pclear{
+  padding:6px 12px;border-radius:20px;border:1px solid var(--border);
+  background:var(--card);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;
+}
+.pclear:active{color:var(--red);border-color:var(--red);}
+
+/* BALL COUNT */
+.ballcount{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 10px;
+}
+.bc-box{
+  background:var(--card);border-radius:10px;padding:10px 12px;
+  border:1px solid var(--border);
+}
+.bc-box.r{border-color:rgba(255,59,59,0.3);}
+.bc-box.b{border-color:rgba(59,158,255,0.3);}
+.bc-lbl{font-size:10px;letter-spacing:1px;font-weight:700;text-transform:uppercase;margin-bottom:6px;}
+.bc-lbl.r{color:var(--red);} .bc-lbl.b{color:var(--blue);}
+.bc-row{display:flex;align-items:center;justify-content:space-between;}
+.bc-btn{
+  width:30px;height:30px;border-radius:50%;border:1px solid var(--border);
+  background:var(--dark);color:var(--text);font-size:17px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s;
+}
+.bc-btn:active{transform:scale(0.85);}
+.bc-val{font-family:'Bebas Neue';font-size:30px;}
+.bc-val.r{color:var(--red);} .bc-val.b{color:var(--blue);}
+
+/* ACTION BUTTON */
+.act-btn{
+  width:calc(100% - 28px);margin:8px 14px;padding:15px;
+  border-radius:12px;border:1.5px solid var(--gold);
+  background:linear-gradient(135deg,#120e00,#0d1117);
+  color:var(--gold);font-family:'Bebas Neue';font-size:19px;letter-spacing:3px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all 0.15s;
+}
+.act-btn:active{transform:scale(0.98);background:rgba(255,201,71,0.07);}
+.act-btn:disabled{opacity:0.3;pointer-events:none;}
+.act-btn.green{border-color:var(--green);color:var(--green);background:linear-gradient(135deg,#001208,#0d1117);}
+
+/* SEQUENCE CARDS */
+.seq-section{padding:12px 14px;}
+.seq-title{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:10px;}
+.seq-list{display:flex;flex-direction:column;gap:8px;}
+.seq-card{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;display:flex;gap:12px;align-items:flex-start;
+  animation:slideUp 0.3s ease both;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.seq-num{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue';font-size:16px;font-weight:700;
+}
+.seq-body{}
+.seq-type{font-family:'Bebas Neue';font-size:11px;letter-spacing:2px;margin-bottom:3px;}
+.seq-name{font-weight:700;font-size:14px;margin-bottom:4px;color:var(--text);}
+.seq-desc{font-size:12px;color:var(--muted);line-height:1.6;}
+
+.restart-btn{
+  width:calc(100% - 28px);margin:8px 14px 16px;padding:13px;
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  color:var(--muted);font-family:'Bebas Neue';font-size:14px;letter-spacing:2px;
+  cursor:pointer;transition:all 0.15s;
+}
+.restart-btn:active{color:var(--text);border-color:var(--text);}
+.pb{height:40px;}
+
+/* HINT OVERLAY */
+.hint-overlay{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:5;
+}
+.hint-txt{font-size:12px;color:rgba(255,255,255,0.18);text-align:center;line-height:1.8;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">BOCCIA <em>sequence</em></div>
+  <div class="phase-pill" id="phasePill">STEP 1</div>
+</div>
+<div class="phase-bar">
+  <div class="ph on" id="ph1">① 球を配置</div>
+  <div class="ph" id="ph2">② 残球確認</div>
+  <div class="ph" id="ph3">③ 投球順序</div>
+</div>
+
+<!-- ===== STEP 1: PLACE BALLS ===== -->
+<div id="step1">
+  <div class="court-outer">
+    <div class="court-label">コート配置（タップして球を置く）</div>
+    <div class="court-box active" id="court1" onclick="placeBall(event)">
+      <div class="vline"></div>
+      <svg class="court-svg" id="svg1" viewBox="0 0 100 52" preserveAspectRatio="none"></svg>
+      <div class="hint-overlay" id="hint1"><div class="hint-txt">下のパレットで球を選んで<br>コートをタップして配置</div></div>
+    </div>
+  </div>
+
+  <div class="palette">
+    <div class="pball jack sel" id="pb_jack" onclick="selPal('jack',this)">J</div>
+    <div class="psep"></div>
+    <div class="pball red" id="pb_r1" data-t="red" data-n="1" onclick="selPal('red',this,'1')">1</div>
+    <div class="pball red" id="pb_r2" data-t="red" data-n="2" onclick="selPal('red',this,'2')">2</div>
+    <div class="pball red" id="pb_r3" data-t="red" data-n="3" onclick="selPal('red',this,'3')">3</div>
+    <div class="pball red" id="pb_r4" data-t="red" data-n="4" onclick="selPal('red',this,'4')">4</div>
+    <div class="pball red" id="pb_r5" data-t="red" data-n="5" onclick="selPal('red',this,'5')">5</div>
+    <div class="pball red" id="pb_r6" data-t="red" data-n="6" onclick="selPal('red',this,'6')">6</div>
+    <div class="psep"></div>
+    <div class="pball blue" id="pb_b1" data-t="blue" data-n="1" onclick="selPal('blue',this,'1')">1</div>
+    <div class="pball blue" id="pb_b2" data-t="blue" data-n="2" onclick="selPal('blue',this,'2')">2</div>
+    <div class="pball blue" id="pb_b3" data-t="blue" data-n="3" onclick="selPal('blue',this,'3')">3</div>
+    <div class="pball blue" id="pb_b4" data-t="blue" data-n="4" onclick="selPal('blue',this,'4')">4</div>
+    <div class="pball blue" id="pb_b5" data-t="blue" data-n="5" onclick="selPal('blue',this,'5')">5</div>
+    <div class="pball blue" id="pb_b6" data-t="blue" data-n="6" onclick="selPal('blue',this,'6')">6</div>
+    <div class="psep"></div>
+    <div class="pclear" onclick="clearAll()">全消去</div>
+  </div>
+
+  <div class="instr" id="instr1">
+    <em>J（ジャック）</em>から配置してください。次に赤球・青球を実際の位置に置く。
+  </div>
+
+  <button class="act-btn" id="btn1" disabled onclick="goStep2()">⚡ 残球を確認する</button>
+  <div class="pb"></div>
+</div>
+
+<!-- ===== STEP 2: BALL COUNT ===== -->
+<div id="step2" style="display:none">
+  <div class="court-outer">
+    <div class="court-label">配置確認</div>
+    <div class="court-box" id="court2">
+      <div class="vline"></div>
+      <svg class="court-svg" id="svg2" viewBox="0 0 100 52" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <div style="padding:12px 14px 0">
+    <div style="font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;">残り球数（未配置の球）</div>
+    <div class="ballcount">
+      <div class="bc-box r">
+        <div class="bc-lbl r">自チーム（赤）</div>
+        <div class="bc-row">
+          <button class="bc-btn" onclick="adjBall('r',-1)">−</button>
+          <div class="bc-val r" id="bv_r">0</div>
+          <button class="bc-btn" onclick="adjBall('r',1)">+</button>
+        </div>
+      </div>
+      <div class="bc-box b">
+        <div class="bc-lbl b">相手（青）</div>
+        <div class="bc-row">
+          <button class="bc-btn" onclick="adjBall('b',-1)">−</button>
+          <div class="bc-val b" id="bv_b">0</div>
+          <button class="bc-btn" onclick="adjBall('b',1)">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="instr">コートに置いてない残り球数を確認・調整してください。</div>
+  <button class="act-btn green" onclick="goStep3()">⚡ 投球順序を計算する</button>
+  <div class="pb"></div>
+</div>
+
+<!-- ===== STEP 3: SEQUENCE ===== -->
+<div id="step3" style="display:none">
+  <div class="court-outer">
+    <div class="court-label">投球計画図</div>
+    <div class="court-box result-mode" id="court3">
+      <div class="vline"></div>
+      <svg class="court-svg" id="svg3" viewBox="0 0 100 52" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+
+  <div class="seq-section">
+    <div class="seq-title">投球順序</div>
+    <div class="seq-list" id="seqList"></div>
+  </div>
+
+  <button class="restart-btn" onclick="restart()">↩ 最初からやり直す</button>
+  <div class="pb"></div>
+</div>
+
+<script>
+// ===== STATE =====
+const S = {
+  balls: [],       // {type,num,x,y}
+  selType: 'jack', selNum: null,
+  remR: 0, remB: 0,
+  curStep: 1
+};
+
+// SEQUENCE COLORS
+const SEQ_COLORS = ['#ffc947','#ff3b3b','#39d98a','#ff8c00','#c084fc','#38bdf8'];
+
+// ===== PALETTE =====
+function selPal(type, el, num) {
+  document.querySelectorAll('.pball').forEach(b => b.classList.remove('sel'));
+  el.classList.add('sel');
+  S.selType = type; S.selNum = num || null;
+}
+
+// ===== PLACE BALL =====
+function placeBall(e) {
+  const court = document.getElementById('court1');
+  const rect = court.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+  // Remove existing same ball
+  if (S.selType === 'jack') {
+    S.balls = S.balls.filter(b => b.type !== 'jack');
+  } else {
+    S.balls = S.balls.filter(b => !(b.type === S.selType && b.num === S.selNum));
+  }
+
+  S.balls.push({ type: S.selType, num: S.selNum, x, y });
+
+  // Mark palette as used
+  const pid = S.selType === 'jack' ? 'pb_jack' : `pb_${S.selType[0]}${S.selNum}`;
+  document.getElementById(pid)?.classList.add('used');
+
+  // Auto-advance palette
+  if (S.selType === 'red') {
+    const next = document.querySelector(`.pball.red:not(.used):not(.sel)`);
+    if (next) { document.querySelectorAll('.pball').forEach(b=>b.classList.remove('sel')); next.classList.add('sel'); S.selNum = next.dataset.n; }
+  } else if (S.selType === 'blue') {
+    const next = document.querySelector(`.pball.blue:not(.used):not(.sel)`);
+    if (next) { document.querySelectorAll('.pball').forEach(b=>b.classList.remove('sel')); next.classList.add('sel'); S.selNum = next.dataset.n; }
+  }
+
+  renderCourt1();
+  updateInstr();
+
+  // Enable next button if jack placed
+  const hasJack = S.balls.some(b => b.type === 'jack');
+  const hasAny = S.balls.some(b => b.type !== 'jack');
+  document.getElementById('btn1').disabled = !(hasJack && hasAny);
+}
+
+function clearAll() {
+  S.balls = [];
+  document.querySelectorAll('.pball').forEach(b => { b.classList.remove('used','sel'); });
+  document.getElementById('pb_jack').classList.add('sel');
+  S.selType = 'jack'; S.selNum = null;
+  renderCourt1();
+  document.getElementById('btn1').disabled = true;
+  document.getElementById('hint1').style.display = 'flex';
+}
+
+function renderCourt1() {
+  const court = document.getElementById('court1');
+  court.querySelectorAll('.bmarker').forEach(b => b.remove());
+  document.getElementById('hint1').style.display = S.balls.length > 0 ? 'none' : 'flex';
+  S.balls.forEach(b => addMarker(court, b));
+}
+
+function addMarker(court, b) {
+  const el = document.createElement('div');
+  el.className = 'bmarker';
+  const sz = b.type === 'jack' ? 20 : 26;
+  const bg = b.type === 'jack' ? '#e8e8e8' : b.type === 'red' ? 'var(--red)' : 'var(--blue)';
+  const col = b.type === 'jack' ? '#333' : '#fff';
+  el.style.cssText = `left:${b.x}%;top:${b.y}%;width:${sz}px;height:${sz}px;background:${bg};color:${col};font-size:${sz===20?8:10}px;`;
+  el.textContent = b.type === 'jack' ? 'J' : b.num;
+  court.appendChild(el);
+}
+
+function updateInstr() {
+  const hasJack = S.balls.some(b => b.type === 'jack');
+  const reds = S.balls.filter(b => b.type === 'red').length;
+  const blues = S.balls.filter(b => b.type === 'blue').length;
+  let msg = '';
+  if (!hasJack) msg = '<em>J（ジャック）</em>から配置してください';
+  else if (reds === 0) msg = 'ジャック配置済み。<em>赤球（自チーム）</em>を置いてください';
+  else if (blues === 0) msg = '<em>青球（相手）</em>を置いてください';
+  else msg = `配置済み: J ✓  赤${reds}球 ✓  青${blues}球 ✓ — 準備できたら次へ`;
+  document.getElementById('instr1').innerHTML = msg;
+}
+
+// ===== STEP 2 =====
+function goStep2() {
+  setStep(2);
+  // calc remaining
+  const reds = S.balls.filter(b => b.type === 'red').length;
+  const blues = S.balls.filter(b => b.type === 'blue').length;
+  S.remR = Math.max(0, 6 - reds);
+  S.remB = Math.max(0, 6 - blues);
+  document.getElementById('bv_r').textContent = S.remR;
+  document.getElementById('bv_b').textContent = S.remB;
+  renderCourtCopy('court2', 'svg2');
+}
+
+function adjBall(t, d) {
+  if (t === 'r') { S.remR = Math.max(0, Math.min(6, S.remR+d)); document.getElementById('bv_r').textContent = S.remR; }
+  else { S.remB = Math.max(0, Math.min(6, S.remB+d)); document.getElementById('bv_b').textContent = S.remB; }
+}
+
+function renderCourtCopy(courtId, svgId) {
+  const court = document.getElementById(courtId);
+  court.querySelectorAll('.bmarker').forEach(b => b.remove());
+  S.balls.forEach(b => addMarker(court, b));
+}
+
+// ===== STEP 3: SEQUENCE CALCULATION =====
+// ===== STEP 3: SEQUENCE =====
+function goStep3() { setStep(3); calcSequence(); }
+
+const dist = (a,b) => Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2);
+const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+function isCorner(j) { return (j.x<22||j.x>78)&&(j.y<22||j.y>78); }
+function blockDensity(j,blues) { return blues.filter(b=>dist(b,j)<15).length; }
+
+function calcSequence() {
+  const jack = S.balls.find(b=>b.type==='jack');
+  if (!jack) return;
+  const reds = S.balls.filter(b=>b.type==='red');
+  const blues = S.balls.filter(b=>b.type==='blue');
+  const rd = reds.map(r=>({...r,d:dist(r,jack)})).sort((a,b)=>a.d-b.d);
+  const bd = blues.map(b=>({...b,d:dist(b,jack)})).sort((a,b)=>a.d-b.d);
+  const myN = rd[0], oppN = bd[0];
+  const weWin = myN&&oppN ? myN.d<oppN.d : !!myN;
+  const corner = isCorner(jack);
+  const dense = blockDensity(jack,blues);
+  const seq=[], tgts=[];
+
+  if (weWin) {
+    // 自チーム最近接: BLOCK → BLOCK → PENALTY → LOB待機
+    const bx=clamp(jack.x+(jack.x>50?8:-8),5,95), by=clamp(jack.y+7,5,95);
+    seq.push({color:SEQ_COLORS[0],type:'BLOCK',name:'1球目: ブロック配置',
+      desc:'ジャック手前に柔らかい球でブロック。相手からジャックの75%以上を隠す（米国基準）。Ball Count Advantageを維持して相手を消耗させる。'});
+    tgts.push({type:'straight',from:null,to:{x:bx,y:by},color:SEQ_COLORS[0],label:'1'});
+
+    if(S.remR>=2){
+      const bx2=clamp(jack.x+(jack.x>50?-7:7),5,95),by2=clamp(jack.y+5,5,95);
+      seq.push({color:SEQ_COLORS[1],type:'BLOCK',name:'2球目: サイドブロック',
+        desc:'反対側も塞いで攻撃角度を封鎖。残球優位を活かして相手を消耗させ続ける。'});
+      tgts.push({type:'straight',from:null,to:{x:bx2,y:by2},color:SEQ_COLORS[1],label:'2'});
+    }
+    if(S.remR>=3){
+      const px=clamp(jack.x+(jack.x>50?13:-13),5,95),py=clamp(jack.y-3,5,95);
+      seq.push({color:SEQ_COLORS[2],type:'⚠ PENALTY誘発',name:'3球目: ペナルティ誘発ポジション',
+        desc:'相手が投げにくいライン際にあえて配置。相手がボックスラインを踏んだり順番を誤るとペナルティショット獲得。韓国・ブラジル上位選手の定石。'});
+      tgts.push({type:'straight',from:null,to:{x:px,y:py},color:SEQ_COLORS[2],label:'3'});
+    }
+    if(S.remR>=4){
+      const lx=jack.x, ly=clamp(jack.y-9,5,95);
+      seq.push({color:SEQ_COLORS[3],type:'🌈 LOB待機',name:'4球目: LOBショット待機',
+        desc:'相手がブロックを重ねた場合はLOBショット（アーチ軌道）でブロック越えに直接ジャック狙い。他球技にはほぼない独特技術。欧州・英国勢が得意とする上級技術。'});
+      tgts.push({type:'lob',from:null,to:{x:lx,y:ly},color:SEQ_COLORS[3],label:'4'});
+    }
+  } else {
+    // 相手最近接: INOFF or KOFF → アプローチ → ジャック移動 → LOB
+    if(corner&&dense>=2&&oppN){
+      const wallX=jack.x>50?97:3, midY=(80+oppN.y)/2;
+      seq.push({color:SEQ_COLORS[0],type:'↩ INOFF',name:`1球目: 壁反射INOFF`,
+        desc:`ブロック密集で直線不可。${jack.x>50?'右':'左'}壁に当てて跳ね返らせ相手最近接を間接除去。コーナー封鎖の崩し技。`});
+      tgts.push({type:'inoff',from:{x:jack.x>50?20:80,y:80},reflect:{x:wallX,y:midY},to:oppN,color:SEQ_COLORS[0],label:'1'});
+    } else if(oppN){
+      seq.push({color:SEQ_COLORS[0],type:'KOFF',name:`1球目: 青${oppN.num}番をKOFF`,
+        desc:`硬い球で相手最近接球を横から直接弾き飛ばす。Fearlessスタイルで躊躇なく攻める。`});
+      tgts.push({type:'straight',from:myN||null,to:oppN,color:SEQ_COLORS[0],label:'1'});
+    }
+    const ax=clamp(jack.x+(jack.x>50?-3:3),5,95),ay=clamp(jack.y+3,5,95);
+    seq.push({color:SEQ_COLORS[1],type:'アプローチ',name:'2球目: 最近接アプローチ',
+      desc:'KOFF/INOFF後すぐにジャックへ精密アプローチ。最近接を奪還する。'});
+    tgts.push({type:'straight',from:null,to:{x:ax,y:ay},color:SEQ_COLORS[1],label:'2'});
+
+    if(S.remR>=3){
+      const jnx=clamp(jack.x+(jack.x>50?15:-15),5,95),jny=clamp(jack.y-12,5,95);
+      seq.push({color:SEQ_COLORS[2],type:'🎯 ジャック移動',name:'3球目: ジャック・リロケーション',
+        desc:`KONでジャックを${jack.x>50?'右':'左'}奥の隅に移動・再配置。韓国・ブラジルが世界制覇に使った戦略。移動先に自球を近くに置くと最近接も同時確保。`});
+      tgts.push({type:'jack-move',from:jack,to:{x:jnx,y:jny},color:SEQ_COLORS[2],label:'3'});
+    }
+    if(S.remR>=4&&dense>=1){
+      const lx=clamp(jack.x+(jack.x>50?-4:4),5,95),ly=clamp(jack.y+4,5,95);
+      seq.push({color:SEQ_COLORS[3],type:'🌈 LOB',name:'4球目: LOBショット',
+        desc:'相手ブロックをアーチ軌道で飛び越えてジャックに直接アプローチ。欧州・英国勢が得意とする高度技術。'});
+      tgts.push({type:'lob',from:null,to:{x:lx,y:ly},color:SEQ_COLORS[3],label:'4'});
+    }
+    if(S.remR>=5){
+      seq.push({color:'#c084fc',type:'⚠ PENALTY誘発',name:'5球目: ペナルティ誘発',
+        desc:'ライン際に配置して相手のファールを誘う。ペナルティショット獲得を狙う上位戦術。'});
+    }
+  }
+
+  renderSequenceSVG(tgts,jack);
+
+  document.getElementById('seqList').innerHTML = seq.map((s,i)=>`
+    <div class="seq-card" style="animation-delay:${i*0.07}s;border-color:${s.color}33;">
+      <div class="seq-num" style="background:${s.color}22;color:${s.color};">${i+1}</div>
+      <div class="seq-body">
+        <div style="font-family:'Bebas Neue';font-size:11px;letter-spacing:2px;color:${s.color};margin-bottom:3px;">${s.type}</div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px;">${s.name}</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;">${s.desc}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderSequenceSVG(tgts,jack) {
+  const court=document.getElementById('court3');
+  court.querySelectorAll('.bmarker').forEach(b=>b.remove());
+  S.balls.forEach(b=>addMarker(court,b));
+  const svg=document.getElementById('svg3');
+  let defs='<defs>';
+  tgts.forEach((t,i)=>{ defs+=`<marker id="ar${i}" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0,0 L5,2.5 L0,5 Z" fill="${t.color}"/></marker>`; });
+  defs+='</defs>';
+  let sh='';
+  tgts.forEach((t,i)=>{
+    const c=t.color,l=t.label;
+    if(t.type==='straight'){
+      if(t.from&&t.to) sh+=`<line x1="${t.from.x}" y1="${t.from.y}" x2="${t.to.x}" y2="${t.to.y}" stroke="${c}" stroke-width="1.5" stroke-dasharray="3,1.5" opacity="0.85" marker-end="url(#ar${i})"/>`;
+      if(t.to){ sh+=`<circle cx="${t.to.x}" cy="${t.to.y}" r="5.5" fill="${c}33" stroke="${c}" stroke-width="1.5" opacity="0.95"/>`; sh+=`<text x="${t.to.x}" y="${t.to.y+1.2}" text-anchor="middle" dominant-baseline="middle" font-size="4.5" font-weight="900" fill="${c}" font-family="sans-serif">${l}</text>`; }
+    } else if(t.type==='lob'&&t.to){
+      const fx=t.from?t.from.x:(t.to.x>50?10:90),fy=t.from?t.from.y:80;
+      const cx=(fx+t.to.x)/2,cy=Math.min(fy,t.to.y)-18;
+      sh+=`<path d="M${fx},${fy} Q${cx},${cy} ${t.to.x},${t.to.y}" fill="none" stroke="${c}" stroke-width="1.5" stroke-dasharray="2,1.5" opacity="0.85" marker-end="url(#ar${i})"/>`;
+      sh+=`<circle cx="${cx}" cy="${cy+3}" r="2" fill="${c}" opacity="0.45"/>`;
+      sh+=`<circle cx="${t.to.x}" cy="${t.to.y}" r="5.5" fill="${c}33" stroke="${c}" stroke-width="1.5" opacity="0.95"/>`;
+      sh+=`<text x="${t.to.x}" y="${t.to.y+1.2}" text-anchor="middle" dominant-baseline="middle" font-size="4.5" font-weight="900" fill="${c}" font-family="sans-serif">${l}</text>`;
+    } else if(t.type==='inoff'&&t.reflect&&t.to){
+      const fx=t.from?t.from.x:50,fy=t.from?t.from.y:80;
+      sh+=`<polyline points="${fx},${fy} ${t.reflect.x},${t.reflect.y} ${t.to.x},${t.to.y}" fill="none" stroke="${c}" stroke-width="1.5" stroke-dasharray="3,1.5" opacity="0.85" marker-end="url(#ar${i})"/>`;
+      sh+=`<polygon points="${t.reflect.x},${t.reflect.y-4} ${t.reflect.x+3},${t.reflect.y} ${t.reflect.x},${t.reflect.y+4} ${t.reflect.x-3},${t.reflect.y}" fill="${c}" opacity="0.7"/>`;
+      sh+=`<circle cx="${t.to.x}" cy="${t.to.y}" r="5.5" fill="${c}33" stroke="${c}" stroke-width="1.5" opacity="0.95"/>`;
+      sh+=`<text x="${t.to.x}" y="${t.to.y+1.2}" text-anchor="middle" dominant-baseline="middle" font-size="4.5" font-weight="900" fill="${c}" font-family="sans-serif">${l}</text>`;
+    } else if(t.type==='jack-move'&&t.from&&t.to){
+      sh+=`<line x1="${t.from.x}" y1="${t.from.y}" x2="${t.to.x}" y2="${t.to.y}" stroke="${c}" stroke-width="2" stroke-dasharray="4,2" opacity="0.9" marker-end="url(#ar${i})"/>`;
+      sh+=`<circle cx="${t.to.x}" cy="${t.to.y}" r="6" fill="${c}44" stroke="${c}" stroke-width="2" opacity="0.95"/>`;
+      sh+=`<text x="${t.to.x}" y="${t.to.y+1.2}" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="900" fill="${c}" font-family="sans-serif">J</text>`;
+      sh+=`<line x1="${t.from.x-4}" y1="${t.from.y-4}" x2="${t.from.x+4}" y2="${t.from.y+4}" stroke="${c}" stroke-width="1.5" opacity="0.5"/>`;
+      sh+=`<line x1="${t.from.x+4}" y1="${t.from.y-4}" x2="${t.from.x-4}" y2="${t.from.y+4}" stroke="${c}" stroke-width="1.5" opacity="0.5"/>`;
+    }
+  });
+  svg.innerHTML=defs+sh;
+}
+
+function setStep(n) {
+  S.curStep = n;
+  [1,2,3].forEach(i => {
+    document.getElementById('step'+i).style.display = i===n ? 'block' : 'none';
+    const ph = document.getElementById('ph'+i);
+    ph.className = 'ph';
+    if (i < n) ph.classList.add('done');
+    else if (i === n) ph.classList.add('on');
+  });
+  document.getElementById('phasePill').textContent = `STEP ${n}`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function restart() {
+  S.balls = []; S.remR = 0; S.remB = 0;
+  document.querySelectorAll('.pball').forEach(b => b.classList.remove('used','sel'));
+  document.getElementById('pb_jack').classList.add('sel');
+  S.selType = 'jack'; S.selNum = null;
+  renderCourt1();
+  document.getElementById('btn1').disabled = true;
+  document.getElementById('hint1').style.display = 'flex';
+  updateInstr();
+  setStep(1);
+}
+
+// Init
+updateInstr();
+</script>
+</body>
+</html>
